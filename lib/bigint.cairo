@@ -57,6 +57,33 @@ func nondet_bigint3{range_check_ptr}() -> (res : BigInt3):
     return (res=res)
 end
 
+# Reduce UnreducedBigInt5 to BigInt3.
+func reduce_ubigint5_mod(x: UnreducedBigInt5, P: BigInt3) -> (res: BigInt3):
+    %{
+        from starkware.cairo.common.cairo_secp.secp_utils import pack
+        from starkware.cairo.common.math_utils import as_int
+
+        p = pack(ids.P, PRIME)
+        x = (pack(ids.x, PRIME) + as_int(ids.x.d3) * ids.BASE ** 3 + as_int(ids.x.d4) * ids.BASE ** 4)
+
+        k, z = divmod(x, p)
+        value = z
+    %}
+    let (z) = nondet_bigint3()
+    %{ value = k %}
+    let (k) = nondet_bigint3()
+
+    let (kp) = bigint_mul(k, P)
+
+    assert x.d0 =  kp.d0 + z.d0
+    assert x.d1 = kp.d1 + z.d1
+    assert x.d2 = kp.d2 + z.d2
+    assert x.d3 = kp.d3
+    assert x.d4 = kp.d4
+
+    return (res=z)
+end
+
 func bigint_add_mod(x: UnreducedBigInt5, y: UnreducedBigInt3, P: BigInt3) -> (res: BigInt3):
     let xy = UnreducedBigInt5(
         d0 = x.d0 + y.d0,
@@ -126,31 +153,11 @@ func bigint_mul_uu(x: UnreducedBigInt3, y: UnreducedBigInt3) -> (res: UnreducedB
     )
 end
 
-func bigint_mul_mod(x: UnreducedBigInt3, y: UnreducedBigInt3, P: BigInt3) -> (res: BigInt3):
-    %{
-        from starkware.cairo.common.cairo_secp.secp_utils import pack
+func bigint_mul_mod(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
+    let (z) = bigint_mul(x, y)
+    let (res) = reduce_ubigint5_mod(z, P)
 
-        p = pack(ids.P, PRIME)
-        x = pack(ids.x, PRIME) % p
-        y = pack(ids.y, PRIME) % p
-
-        k, z = divmod(x * y, p)
-        value = z
-    %}
-    let (z) = nondet_bigint3()
-    %{ value = k %}
-    let (k) = nondet_bigint3()
-
-    let (xy) = bigint_mul_uu(x, y)
-    let (kp) = bigint_mul(k, P)
-
-    assert xy.d0 = kp.d0 + z.d0
-    assert xy.d1 = kp.d1 + z.d1
-    assert xy.d2 = kp.d2 + z.d2
-    assert xy.d3 = kp.d3
-    assert xy.d4 = kp.d4
-
-    return (res=z)
+    return (res=res)
 end
 
 func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P: BigInt3) -> (res: BigInt3):
@@ -172,19 +179,19 @@ func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P
     let (res_y) = bigint_mul_u(y, res)
     let (k_p) = bigint_mul(k, P)
 
-    tempvar carry1 = (res_s.d0 - k_n.d0 - x.d0) / BASE
+    tempvar carry1 = (res_y.d0 - k_p.d0 - x.d0) / BASE
     assert [range_check_ptr + 0] = carry1 + 2 ** 127
 
-    tempvar carry2 = (res_s.d1 - k_n.d1 - x.d1 + carry1) / BASE
+    tempvar carry2 = (res_y.d1 - k_p.d1 - x.d1 + carry1) / BASE
     assert [range_check_ptr + 1] = carry2 + 2 ** 127
 
-    tempvar carry3 = (res_s.d2 - k_n.d2 - x.d2 + carry2) / BASE
+    tempvar carry3 = (res_y.d2 - k_p.d2 - x.d2 + carry2) / BASE
     assert [range_check_ptr + 2] = carry3 + 2 ** 127
 
-    tempvar carry4 = (res_s.d3 - k_n.d3 + carry3) / BASE
+    tempvar carry4 = (res_y.d3 - k_p.d3 + carry3) / BASE
     assert [range_check_ptr + 3] = carry4 + 2 ** 127
 
-    assert res_s.d4 - k_n.d4 + carry4 = 0
+    assert res_y.d4 - k_p.d4 + carry4 = 0
     let range_check_ptr = range_check_ptr + 4
 
     return (res=res)
