@@ -130,28 +130,32 @@ func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P
         x = (pack(ids.x, PRIME) + as_int(ids.x.d3) * ids.BASE ** 3 + as_int(ids.x.d4) * ids.BASE ** 4) % p
         y = pack(ids.y, PRIME) % p
 
-        q, r = divmod(x, y)
-        assert r == 0, f"verify_zero: Invalid input {ids.x.d0, ids.x.d1, ids.x.d2, ids.x.d3, ids.x.d4, ids.y.d0, ids.y.d1, ids.y.d2}."
-
-        value = q if q > 0 else q + p
-        ids.flag = 1 if q > 0 else 0
+        value = res = div_mod(x, y, p)
     %}
     let (res) = nondet_bigint3()
-    let (res_y) = bigint_mul_u(y, res)
 
-    tempvar carry1 = ((2 * flag - 1) * res_y.d0 - x.d0) / BASE
+    %{
+        k = safe_div(res * y - x, p)
+        value = k if k > 0 else 0 - k
+        ids.flag = 1 if k > 0 else 0
+    %}
+
+    let (res_y) = bigint_mul_u(y, res)
+    let (k_p) = bigint_mul(k, P)
+
+    tempvar carry1 = ((2 * flag - 1) * res_y.d0 - k_p.d0 - x.d0) / BASE
     assert [range_check_ptr + 0] = carry1 + 2 ** 127
 
-    tempvar carry2 = ((2 * flag - 1) * res_y.d1 - x.d1 + carry1) / BASE
+    tempvar carry2 = ((2 * flag - 1) * res_y.d1 - k_p.d1 - x.d1 + carry1) / BASE
     assert [range_check_ptr + 1] = carry2 + 2 ** 127
 
-    tempvar carry3 = ((2 * flag - 1) * res_y.d2 - x.d2 + carry2) / BASE
+    tempvar carry3 = ((2 * flag - 1) * res_y.d2 - k_p.d2 - x.d2 + carry2) / BASE
     assert [range_check_ptr + 2] = carry3 + 2 ** 127
 
-    tempvar carry4 = ((2 * flag - 1) * res_y.d3 - x.d3 + carry3) / BASE
+    tempvar carry4 = ((2 * flag - 1) * res_y.d3 - k_p.d3 - x.d3 + carry3) / BASE
     assert [range_check_ptr + 3] = carry4 + 2 ** 127
 
-    assert (2 * flag - 1) * res_y.d4 - x.d4 + carry4 = 0
+    assert (2 * flag - 1) * res_y.d4 - k_p.d4 - x.d4 + carry4 = 0
     let range_check_ptr = range_check_ptr + 4
 
     return (res=res)
