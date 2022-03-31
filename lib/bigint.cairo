@@ -159,3 +159,12 @@ func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P
 
     return (res=res)
 end
+
+# Check val = 0 mod n?
+func verify_urbigInt5_zero{range_check_ptr}(val : UnreducedBigInt5, n : BigInt3):
+    let (res) = bigint_div_mod(val, UnreducedBigInt3(1, 0, 0), n)
+    assert res.d0 = 0
+    assert res.d1 = 0
+    assert res.d2 = 0
+    return()
+end
