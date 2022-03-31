@@ -1,5 +1,4 @@
 from param_def import BASE, P0, P1, P2
-from starkware.cairo.common.serialize import serialize_word
 # Represents an integer defined by
 #   d0 + BASE * d1 + BASE**2 * d2.
 # Note that the limbs (d_i) are NOT restricted to the range [0, BASE) and in particular they
@@ -58,7 +57,7 @@ func nondet_bigint3{range_check_ptr}() -> (res : BigInt3):
 end
 
 # Returns (x + y) % P
-func bigint_add_mod(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
+func bigint_add_mod{range_check_ptr}(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
     let z = UnreducedBigInt5(
         d0 = x.d0 + y.d0,
         d1 = x.d1 + y.d1,
@@ -72,13 +71,13 @@ func bigint_add_mod(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
 end
 
 # Returns (x - y) % P
-func bigint_sub_mod(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
+func bigint_sub_mod{range_check_ptr}(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
     let z = UnreducedBigInt5(
         d0 = x.d0 - y.d0,
         d1 = x.d1 - y.d1,
         d2 = x.d2 - y.d2,
-        d3 = x.d3,
-        d4 = x.d4
+        d3 = 0,
+        d4 = 0
     )
 
     let (res) = bigint_div_mod(z, UnreducedBigInt3(1, 0, 0), P)
@@ -110,7 +109,7 @@ func bigint_mul_u(x: UnreducedBigInt3, y: BigInt3) -> (res: UnreducedBigInt5):
 end
 
 # Returns (x * y) % P
-func bigint_mul_mod(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
+func bigint_mul_mod{range_check_ptr}(x: BigInt3, y: BigInt3, P: BigInt3) -> (res: BigInt3):
     let (z) = bigint_mul(x, y)
     let (res) = bigint_div_mod(z, UnreducedBigInt3(1, 0, 0), P)
 
