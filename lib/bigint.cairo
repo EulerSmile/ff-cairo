@@ -127,7 +127,7 @@ func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P
         from starkware.python.math_utils import div_mod, safe_div
 
         p = pack(ids.P, PRIME)
-        x = (pack(ids.x, PRIME) + as_int(ids.x.d3) * ids.BASE ** 3 + as_int(ids.x.d4) * ids.BASE ** 4) % p
+        x = (pack(ids.x, PRIME) + as_int(ids.x.d3, PRIME) * ids.BASE ** 3 + as_int(ids.x.d4, PRIME) * ids.BASE ** 4) % p
         y = pack(ids.y, PRIME) % p
 
         value = res = div_mod(x, y, p)
@@ -139,7 +139,7 @@ func bigint_div_mod{range_check_ptr}(x: UnreducedBigInt5, y: UnreducedBigInt3, P
         value = k if k > 0 else 0 - k
         ids.flag = 1 if k > 0 else 0
     %}
-
+    let (k) = nondet_bigint3()
     let (res_y) = bigint_mul_u(y, res)
     let (k_p) = bigint_mul(k, P)
 
